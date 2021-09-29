@@ -1,12 +1,17 @@
 {
   "name": "cointracker-btc",
-  "version": "0.0.0",
+  "productName": "cointracker-btc",
+  "version": "1.0.0",
+  "description": "Engineering project for CoinTracker",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "serve": "vite preview"
+    "build:prod": "tsc && vite build"
   },
   "dependencies": {
+    "@chakra-ui/react": "^1.6.8",
+    "@emotion/react": "^11.4.1",
+    "@emotion/styled": "^11.3.0",
+    "framer-motion": "^4.1.17",
     "react": "^17.0.0",
     "react-dom": "^17.0.0"
   },
