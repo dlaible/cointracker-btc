@@ -24,7 +24,7 @@ const Transaction = (props: { transaction: ITransaction }) => {
 
   return (
     <Tr>
-      <Td isTruncated>{props.transaction.hash}</Td>
+      <Td>{props.transaction.hash.substring(0, 8)}...</Td>
       <Td>{typeBadge}</Td>
       <Td>{props.transaction.timestamp}</Td>
       <Td isNumeric>{props.transaction.amountBTC.toFixed(8)}</Td>

@@ -4,7 +4,9 @@ import {
   Input,
   Stack,
   useToast,
+  Skeleton,
 } from '@chakra-ui/react'
+import axios from 'axios'
 import React, { useState } from 'react'
 
 import IAddress, { initIAddress } from '../../interfaces/iaddress'
@@ -12,6 +14,16 @@ import { initITransaction } from '../../interfaces/itransaction'
 import Address from '../address/address'
 
 const ENTER_KEY = 13
+
+const LoadingAddresses = () => {
+  return (
+    <Stack>
+      <Skeleton height='20px' />
+      <Skeleton height='20px' />
+      <Skeleton height='20px' />
+    </Stack>
+  )
+}
 
 const NoAddresses = () => {
   return (
@@ -25,6 +37,21 @@ const ProfileData = () => {
   const toast = useToast()
   const [addAddressText, setAddAddressText] = useState('')
   const [addresses, setAddresses] = useState<IAddress[]>([])
+  const [loading, setLoading] = useState(false)
+
+  // Common error handler
+  const handleError = (errorStr: string) => {
+    toast({
+      title: errorStr,
+      status: 'error',
+      isClosable: true,
+      position: 'top-right',
+    })
+    console.error(errorStr)
+
+    // Make sure loading is canceled
+    setLoading(false)
+  }
 
   const handleInputChange = (e: React.FormEvent<HTMLInputElement>) => {
     const text = e.currentTarget.value
@@ -42,31 +69,45 @@ const ProfileData = () => {
       // Check that the address is valid. Note that an address can not be added
       // to the same user more than once
       if (inputAddress.length < 26 || inputAddress.length > 35 || addresses.find((a) => a.hash === inputAddress)) {
-        toast({
-          title: 'Invalid address.',
-          status: 'error',
-          isClosable: true,
-          position: 'top-right',
-        })
+        handleError('Invalid address.')
         return
       }
 
-      // Create a new address object and save it to the state
-      const newAddress = initIAddress({
-        hash: inputAddress,
-        transactions: [
-          initITransaction({ hash: '1' }),
-          initITransaction({ hash: '2' }),
-          initITransaction({ hash: '3' }),
-        ],
-      })
-      setAddresses([...addresses, newAddress])
+      // Set the UI as loading data
+      setLoading(true)
+
+      // Get transaction data for the given address via blockchair
+      axios.get(`https://api.blockchair.com/bitcoin/dashboards/address/${inputAddress}`)
+        .then((resp) => {
+          if (resp.status !== 200) {
+            handleError('Invalid response.')
+            return
+          }
+
+          // Retrieve the transaction data
+          const transactions = resp.data && resp.data.data && resp.data.data[inputAddress] && resp.data.data[inputAddress].transactions
+          const newTransactions = transactions.map((t: string) => initITransaction({
+            hash: t,
+          }))
+
+          // Create a new address object and save it to the state
+          const newAddress = initIAddress({
+            hash: inputAddress,
+            transactions: newTransactions,
+          })
+          setAddresses([...addresses, newAddress])
+          setLoading(false)
+        })
+        .catch((e) => handleError('Request failure.'))
     }
   }
 
   // Determine which elements to display depending on the number of addresses
   let addressElems: any = <NoAddresses />
-  if (addresses.length) {
+
+  if (loading) {
+    addressElems = <LoadingAddresses />
+  } else if (addresses.length) {
     addressElems = addresses.map((a) => <Address key={a.hash} address={a} />)
   }
 
